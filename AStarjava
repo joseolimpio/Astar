@@ -1,0 +1,216 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package astar;
+
+import java.util.*;
+
+public class AStar {
+    public static final int DIAGONAL_COST = 14;
+    public static final int V_H_COST = 10;
+    
+    static class Cell{  
+        int heuristicCost = 0; //Heuristica custo
+        int finalCost = 0; //G+H
+        int i, j;
+        Cell parent; 
+        
+        Cell(int i, int j){
+            this.i = i;
+            this.j = j; 
+        }
+        
+        @Override
+        public String toString(){
+            return "["+this.i+", "+this.j+"]";
+        }
+    }
+    //Células bloqueadas são valores vazios na tabela.
+    static Cell [][] grid = new Cell[5][5];
+    
+    static PriorityQueue<Cell> open;
+     
+    static boolean closed[][];
+    static int startI, startJ;
+    static int endI, endJ;
+            
+    public static void setBlocked(int i, int j){
+        grid[i][j] = null;
+    }
+    
+    public static void setStartCell(int i, int j){
+        startI = i;
+        startJ = j;
+    }
+    
+    public static void setEndCell(int i, int j){
+        endI = i;
+        endJ = j; 
+    }
+    
+    static void checkAndUpdateCost(Cell current, Cell t, int cost){
+        if(t == null || closed[t.i][t.j])return;
+        int t_final_cost = t.heuristicCost+cost;
+        
+        boolean inOpen = open.contains(t);
+        if(!inOpen || t_final_cost<t.finalCost){
+            t.finalCost = t_final_cost;
+            t.parent = current;
+            if(!inOpen)open.add(t);
+        }
+    }
+    
+    public static void AStar(){ 
+        
+        //Adiciona a posição de inicio na lista.
+        open.add(grid[startI][startJ]);
+        
+        Cell current;
+        
+        while(true){ 
+            current = open.poll();
+            if(current==null)break;
+            closed[current.i][current.j]=true; 
+
+            if(current.equals(grid[endI][endJ])){
+                return; 
+            } 
+
+            Cell t;  
+            if(current.i-1>=0){
+                t = grid[current.i-1][current.j];
+                checkAndUpdateCost(current, t, current.finalCost+V_H_COST); 
+
+                if(current.j-1>=0){                      
+                    t = grid[current.i-1][current.j-1];
+                    checkAndUpdateCost(current, t, current.finalCost+DIAGONAL_COST); 
+                }
+
+                if(current.j+1<grid[0].length){
+                    t = grid[current.i-1][current.j+1];
+                    checkAndUpdateCost(current, t, current.finalCost+DIAGONAL_COST); 
+                }
+            } 
+
+            if(current.j-1>=0){
+                t = grid[current.i][current.j-1];
+                checkAndUpdateCost(current, t, current.finalCost+V_H_COST); 
+            }
+
+            if(current.j+1<grid[0].length){
+                t = grid[current.i][current.j+1];
+                checkAndUpdateCost(current, t, current.finalCost+V_H_COST); 
+            }
+
+            if(current.i+1<grid.length){
+                t = grid[current.i+1][current.j];
+                checkAndUpdateCost(current, t, current.finalCost+V_H_COST); 
+
+                if(current.j-1>=0){
+                    t = grid[current.i+1][current.j-1];
+                    checkAndUpdateCost(current, t, current.finalCost+DIAGONAL_COST); 
+                }
+                
+                if(current.j+1<grid[0].length){
+                   t = grid[current.i+1][current.j+1];
+                    checkAndUpdateCost(current, t, current.finalCost+DIAGONAL_COST); 
+                }  
+            }
+        } 
+    }
+    
+    /*
+    Parametros :
+    tCase = numero do teste.
+    x, y = Dimensoes da tabela.
+    si, sj = Coordenadas X,Y do ponto inicial.
+    ei, ej = Coordenadas X,Y do ponto final.
+    int[][] blocked = array contendo as coordenadas dos bloqueios.
+    */
+    public static void test(int tCase, int x, int y, int si, int sj, int ei, int ej, int[][] blocked){
+           System.out.println("\n\nTabela #"+tCase);
+            //Reset
+           grid = new Cell[x][y];
+           closed = new boolean[x][y];
+           open = new PriorityQueue<>((Object o1, Object o2) -> {
+                Cell c1 = (Cell)o1;
+                Cell c2 = (Cell)o2;
+
+                return c1.finalCost<c2.finalCost?-1:
+                        c1.finalCost>c2.finalCost?1:0;
+            });
+           //Setar a posição inicial
+           setStartCell(si, sj);             
+           //Setar a posição final
+           setEndCell(ei, ej); 
+           
+           for(int i=0;i<x;++i){
+              for(int j=0;j<y;++j){
+                  grid[i][j] = new Cell(i, j);
+                  grid[i][j].heuristicCost = Math.abs(i-endI)+Math.abs(j-endJ);
+//                  System.out.print(grid[i][j].heuristicCost+" ");
+              }
+//              System.out.println();
+           }
+           grid[si][sj].finalCost = 0;
+           
+           /*
+           Setar as celulas bloqueadas, setando os valores para null.
+           */
+           for(int i=0;i<blocked.length;++i){
+               setBlocked(blocked[i][0], blocked[i][1]);
+           }
+           
+           //Mostrar Mapa
+           System.out.println("Grid: ");
+            for(int i=0;i<x;++i){
+                for(int j=0;j<y;++j){
+                   if(i==si&&j==sj)System.out.print("SO  "); //Inicio
+                   else if(i==ei && j==ej)System.out.print("DE  ");  //Destino
+                   else if(grid[i][j]!=null)System.out.printf("%-3d ", 0);
+                   else System.out.print("BL  "); 
+                }
+                System.out.println();
+            } 
+            System.out.println();
+           
+           AStar(); 
+           System.out.println("\nValores das Células: ");
+           for(int i=0;i<x;++i){
+               for(int j=0;j<x;++j){
+                   if(grid[i][j]!=null)System.out.printf("%-3d ", grid[i][j].finalCost);
+                   else System.out.print("BL  ");
+               }
+               System.out.println();
+           }
+           System.out.println();
+            
+           if(closed[endI][endJ]){
+               //Traçando o caminho
+                System.out.println("Caminho: ");
+                Cell current = grid[endI][endJ];
+                System.out.print(current);
+                while(current.parent!=null){
+                    System.out.print(" - "+current.parent);
+                    current = current.parent;
+                } 
+                System.out.println();
+           }else System.out.println("Nenhum caminho possível.");
+    }
+     
+    public static void main(String[] args) throws Exception{   
+        test(1, 10, 10, 0, 0, 8, 9, new int[][]{    {0,1},{0,2},{0,3},{0,4},{0,5},{0,6},{0,7},{0,8},{0,9}, 
+
+                                                {2,0},{2,1},{2,2},    {2,4},{2,5},{2,6},        {2,8},{2,9},
+                                                {3,0},{3,1},{3,2},    {3,4},{3,5},{3,6},        {3,8},{3,9},
+                                                {4,0},{4,1},{4,2},    {4,4},{4,5},{4,6},        {4,8},{4,9},                
+
+                                                {6,0},{6,1},{6,2},    {6,4},{6,5},{6,6},        {6,8},{6,9},                                                
+                                                {7,0},{7,1},{7,2},    {7,4},{7,5},{7,6},        {7,8},{7,9},
+
+                                                {9,0},{9,1},{9,2},    {9,4},{9,5},{9,6},        {9,8},{9,9}                                                
+        });
+    }
+}
